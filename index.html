@@ -316,32 +316,53 @@ input[type=file].inp::file-selector-button{
 }
 .natoggle .ic{width:20px;height:20px;flex:none}
 
-/* — photo framing slider — */
-.framing{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.framing label{
-  font-size:12px;font-weight:500;letter-spacing:.033em;
-  color:var(--on-surface-var);flex:none;
+/* — photo cropper: the window matches the card's photo band — */
+.cropper{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.crop-box{
+  position:relative;overflow:hidden;flex:none;
+  width:132px;aspect-ratio:1.5 / 2.4933;
+  border-radius:var(--r-m);background:var(--s-highest);
+  cursor:grab;touch-action:none;user-select:none;
+  border:1px solid var(--outline);
 }
-.framing input[type=range]{
-  flex:1;min-width:140px;height:20px;-webkit-appearance:none;appearance:none;background:none;
+.crop-box.dragging{cursor:grabbing;border-color:var(--primary)}
+.crop-box img{pointer-events:none;-webkit-user-drag:none}
+/* rule-of-thirds guides, only while dragging */
+.crop-grid{
+  position:absolute;inset:0;pointer-events:none;opacity:0;
+  transition:opacity .15s var(--ease);
+  background:
+    linear-gradient(to right,transparent 33.3%,rgba(255,255,255,.5) 33.3%,rgba(255,255,255,.5) 33.5%,transparent 33.5%,transparent 66.6%,rgba(255,255,255,.5) 66.6%,rgba(255,255,255,.5) 66.8%,transparent 66.8%),
+    linear-gradient(to bottom,transparent 33.3%,rgba(255,255,255,.5) 33.3%,rgba(255,255,255,.5) 33.5%,transparent 33.5%,transparent 66.6%,rgba(255,255,255,.5) 66.6%,rgba(255,255,255,.5) 66.8%,transparent 66.8%);
 }
-.framing input[type=range]::-webkit-slider-runnable-track{
+.crop-box.dragging .crop-grid{opacity:1}
+
+.crop-side{flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.crop-side label{
+  font-size:12px;font-weight:500;letter-spacing:.033em;color:var(--on-surface-var);
+}
+.crop-side label b{color:var(--on-surface);font-variant-numeric:tabular-nums}
+.crop-btns{display:flex;gap:4px;flex-wrap:wrap}
+.crop-side input[type=range]{
+  width:100%;height:20px;-webkit-appearance:none;appearance:none;background:none;
+}
+.crop-side input[type=range]::-webkit-slider-runnable-track{
   height:4px;border-radius:var(--r-full);background:var(--s-highest);
 }
-.framing input[type=range]::-moz-range-track{
+.crop-side input[type=range]::-moz-range-track{
   height:4px;border-radius:var(--r-full);background:var(--s-highest);
 }
-.framing input[type=range]::-webkit-slider-thumb{
+.crop-side input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;appearance:none;
   width:18px;height:18px;margin-top:-7px;border-radius:var(--r-full);
   background:var(--primary);border:none;cursor:grab;
   transition:transform .2s var(--spring);
 }
-.framing input[type=range]::-moz-range-thumb{
+.crop-side input[type=range]::-moz-range-thumb{
   width:18px;height:18px;border-radius:var(--r-full);
   background:var(--primary);border:none;cursor:grab;
 }
-.framing input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25);cursor:grabbing}
+.crop-side input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25);cursor:grabbing}
 
 /* — glassware picker — */
 .glass-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-bottom:12px}
@@ -603,7 +624,7 @@ const CARD_CSS = `
 }
 
 .bc .shot{background:#e6ebee;overflow:hidden;position:relative}
-.bc .shot img{width:100%;height:100%;object-fit:cover;display:block}
+.bc .shot img{display:block}
 .bc .shot .none{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-family:'Archivo',sans-serif;font-size:6pt;letter-spacing:.18em;
@@ -743,7 +764,8 @@ const glassIcon = name => {
    ============================================================ */
 const uid = () => Math.random().toString(36).slice(2, 10);
 const blank = () => ({
-  id: uid(), name: 'New Cocktail', glass: 'Rocks', na: false, photoPos: 50,
+  id: uid(), name: 'New Cocktail', glass: 'Rocks', na: false,
+  photoX: 50, photoY: 50, photoZoom: 1, photoAR: 0,
   photo: '', ingredients: [{ amount: '', name: '' }], steps: [''],
   garnish: '', allergens: []
 });
@@ -857,7 +879,11 @@ function normalise(c){
     id: c.id || uid(),
     name: c.name || '', glass: c.glass || '', na: !!c.na,
     photo: c.photo || '',
-    photoPos: typeof c.photoPos === 'number' ? c.photoPos : 50,
+    // photoPos was the old single-axis slider; carry it into both axes
+    photoX: num(c.photoX, num(c.photoPos, 50)),
+    photoY: num(c.photoY, num(c.photoPos, 50)),
+    photoZoom: Math.min(4, Math.max(1, num(c.photoZoom, 1))),
+    photoAR: num(c.photoAR, 0),
     ingredients: Array.isArray(c.ingredients) && c.ingredients.length ? c.ingredients : [{amount:'',name:''}],
     steps: Array.isArray(c.steps) && c.steps.length ? c.steps : [''],
     garnish: c.garnish || '',
@@ -1010,6 +1036,69 @@ function bytesToB64(bytes){
   return btoa(s);
 }
 
+/* ============================================================
+   CROPPER — drag to pan inside a window shaped like the card's
+   photo band. Percentages are derived from the actual overflow,
+   so a drag of N pixels moves the image by N pixels regardless
+   of zoom or image size.
+   ============================================================ */
+function syncCrop(c){
+  const img = document.querySelector('[data-crop] img');
+  if(img) img.setAttribute('style', photoStyle(c));
+}
+
+(function enableCropDrag(){
+  let box = null, img = null, card = null, sx = 0, sy = 0, ox = 50, oy = 50;
+
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-crop]');
+    if(!b) return;
+    card = cur(); if(!card || !card.photo) return;
+    box = b; img = b.querySelector('img');
+    sx = e.clientX; sy = e.clientY;
+    ox = num(card.photoX, 50); oy = num(card.photoY, 50);
+    b.setPointerCapture(e.pointerId);
+    b.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('pointermove', e => {
+    if(!box || !card) return;
+    const bb = box.getBoundingClientRect(), ib = img.getBoundingClientRect();
+    const overX = ib.width - bb.width, overY = ib.height - bb.height;
+    // dragging right should reveal what's on the left, hence the minus
+    if(overX > 0.5) card.photoX = Math.min(100, Math.max(0, ox - (e.clientX - sx) / overX * 100));
+    if(overY > 0.5) card.photoY = Math.min(100, Math.max(0, oy - (e.clientY - sy) / overY * 100));
+    syncCrop(card);
+    renderPreview();
+  });
+
+  const end = () => {
+    if(!box) return;
+    box.classList.remove('dragging');
+    box = null; img = null;
+    queueSave();
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+})();
+
+/* Decks made before zoom existed have no stored aspect ratio.
+   Measure them once, then repaint. */
+function backfillAspect(){
+  const pending = cards.filter(c => c.photo && !c.photoAR);
+  if(!pending.length) return;
+  let left = pending.length;
+  pending.forEach(c => {
+    const im = new Image();
+    im.onload = im.onerror = () => {
+      if(im.naturalWidth && im.naturalHeight) c.photoAR = im.naturalWidth / im.naturalHeight;
+      if(--left === 0){ renderForm(); renderPreview(); queueSave(); }
+    };
+    im.src = c.photo;
+  });
+}
+
 function flag(t){
   const el = document.getElementById('savedFlag');
   el.textContent = t;
@@ -1104,13 +1193,22 @@ function renderForm(){
       <label class="field"><span>Photo</span>
         <input class="inp" type="file" accept="image/*" data-photo></label>
       ${c.photo ? `
-        <div class="framing">
-          <label for="photoPos">Framing</label>
-          <input type="range" id="photoPos" min="0" max="100" step="1"
-                 value="${c.photoPos ?? 50}" data-photopos>
-          <button class="add" data-act="clearphoto">${I.trash}Remove photo</button>
+        <div class="cropper">
+          <div class="crop-box" data-crop title="Drag to reposition">
+            <img src="${c.photo}" alt="" style="${photoStyle(c)}" draggable="false">
+            <span class="crop-grid"></span>
+          </div>
+          <div class="crop-side">
+            <label for="zoomer">Zoom <b data-zoomval>${(num(c.photoZoom,1)).toFixed(1)}×</b></label>
+            <input type="range" id="zoomer" min="100" max="400" step="5"
+                   value="${Math.round(num(c.photoZoom,1) * 100)}" data-zoom>
+            <div class="crop-btns">
+              <button class="add" data-act="resetcrop">Reset</button>
+              <button class="add" data-act="clearphoto">${I.trash}Remove</button>
+            </div>
+          </div>
         </div>
-        <p class="hint">The card crops photos to a tall band. Drag to choose which part shows.</p>` : ''}
+        <p class="hint">This window is the exact shape of the card's photo band. Drag the image to reposition, zoom in if the drink sits too far away.</p>` : ''}
     </div>
 
     <div class="sect">
@@ -1189,7 +1287,7 @@ function cardHTML(c){
   return `
   <article class="card">
     <div class="shot">
-      ${c.photo ? `<img src="${c.photo}" alt="" style="object-position:${c.photoPos ?? 50}% ${c.photoPos ?? 50}%">` : `<span class="none">Photo</span>`}
+      ${c.photo ? `<img src="${c.photo}" alt="" style="${photoStyle(c)}">` : `<span class="none">Photo</span>`}
     </div>
     <div class="body">
       <div class="head">
@@ -1229,6 +1327,26 @@ function cardHTML(c){
 const PAGE_W = 10.3, PAGE_H = 7.8, PAGE_GAP = 0.16;
 const CARD_W = (PAGE_W - PAGE_GAP) / 2;
 const CARD_H = (PAGE_H - PAGE_GAP * 2) / 3;
+
+const PHOTO_W = 1.5;                       // the photo band, in inches
+const BAND_AR = PHOTO_W / CARD_H;          // ~0.602 — tall and narrow
+
+function num(v, d){ return (typeof v === 'number' && isFinite(v)) ? v : d; }
+
+/* Positions the photo inside the band exactly the way CSS
+   background-position percentages would, but with a real <img> so it
+   survives printing (background images are dropped by some print paths).
+   left:X% + translate(-X%) puts the image's X point on the box's X point. */
+function photoStyle(c){
+  const z = num(c.photoZoom, 1), x = num(c.photoX, 50), y = num(c.photoY, 50);
+  const ar = num(c.photoAR, 0);
+  const size = !ar
+    ? `width:100%;height:100%;object-fit:cover;`               // until measured
+    : (ar > BAND_AR ? `height:${100 * z}%;width:auto;`         // wider than band
+                    : `width:${100 * z}%;height:auto;`);       // taller than band
+  return `${size}position:absolute;max-width:none;`
+       + `left:${x}%;top:${y}%;transform:translate(-${x}%,-${y}%);`;
+}
 
 function pagesHTML(padded){
   const out = [];
@@ -1411,7 +1529,7 @@ function readPhoto(file, done){
       cv.width = Math.round(img.width * s);
       cv.height = Math.round(img.height * s);
       cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      done(cv.toDataURL('image/jpeg', 0.82));
+      done(cv.toDataURL('image/jpeg', 0.82), cv.width / cv.height);
     };
     img.onerror = () => toast("Couldn't read that image.");
     img.src = r.result;
@@ -1532,7 +1650,12 @@ document.addEventListener('click', e => {
       c.allergens.push(name);
       renderForm(); renderPreview(); queueSave(); break;
     }
-    case 'clearphoto': c.photo = ''; renderAll(); queueSave(); break;
+    case 'clearphoto':
+      c.photo = ''; c.photoAR = 0; c.photoX = 50; c.photoY = 50; c.photoZoom = 1;
+      renderAll(); queueSave(); break;
+    case 'resetcrop':
+      c.photoX = 50; c.photoY = 50; c.photoZoom = 1;
+      renderForm(); renderPreview(); queueSave(); break;
     case 'dupe': {
       const copy = JSON.parse(JSON.stringify(c));
       copy.id = uid(); copy.name = c.name + ' (copy)';
@@ -1563,9 +1686,12 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const c = cur(); if(!c) return;
   const t = e.target;
-  if(t.dataset.photopos !== undefined){
-    // re-render only the preview, so the slider keeps focus while dragging
-    c.photoPos = +t.value;
+  if(t.dataset.zoom !== undefined){
+    // update in place so the slider keeps focus while dragging
+    c.photoZoom = +t.value / 100;
+    const lbl = document.querySelector('[data-zoomval]');
+    if(lbl) lbl.textContent = c.photoZoom.toFixed(1) + '×';
+    syncCrop(c);
     renderPreview(); queueSave(); return;
   }
   if(t.dataset.f){ c[t.dataset.f] = t.value; renderPreview(); if(t.dataset.f === 'name') renderRail(); queueSave(); return; }
@@ -1587,7 +1713,12 @@ document.addEventListener('keydown', e => {
 document.addEventListener('change', e => {
   if(e.target.hasAttribute && e.target.hasAttribute('data-photo')){
     const f = e.target.files[0]; if(!f) return;
-    readPhoto(f, dataUrl => { const c = cur(); c.photo = dataUrl; renderAll(); queueSave(); });
+    readPhoto(f, (dataUrl, ar) => {
+      const c = cur();
+      c.photo = dataUrl; c.photoAR = ar;
+      c.photoX = 50; c.photoY = 50; c.photoZoom = 1;
+      renderAll(); queueSave();
+    });
   }
 });
 
@@ -1658,6 +1789,7 @@ async function requestDurableStorage(){
   setTab('form');
   renderAll();
   requestDurableStorage();
+  backfillAspect();
   if(storageMode === 'none'){
     flag('Not saved — export a backup');
     toast("This browser won't let the page save. Serve it over http:// instead of opening the file directly.");
