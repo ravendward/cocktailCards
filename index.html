@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   MATERIAL 3 EXPRESSIVE — dark scheme
+   Seeded on a warm red-orange, which is where the printed
+   card's accent already lives. Secondary is a muted clay,
+   tertiary a soft gold, so chips and toggles don't all read
+   as the same colour.
+   ============================================================ */
+:root{
+  /* — colour roles — */
+  --primary:#c9c7c6;            --on-primary:#2f2f2e;
+  --primary-container:#4a4847;  --on-primary-container:#e6e2e1;
+  --secondary:#c6c7ca;          --on-secondary:#2f3133;
+  --secondary-container:#43464a;--on-secondary-container:#e3e3e6;
+  --tertiary:#bcc6cb;           --on-tertiary:#273236;
+  --tertiary-container:#3d484d; --on-tertiary-container:#d8e2e7;
+  --error:#ffb4ab;              --on-error:#690005;
+  --error-container:#8c2119;    --on-error-container:#ffdad6;
+
+  --surface:#131313;
+  --surface-dim:#131313;
+  --surface-bright:#393939;
+  --s-lowest:#0e0e0e;
+  --s-low:#1b1b1b;
+  --s-container:#1f1f1f;
+  --s-high:#2a2a2a;
+  --s-highest:#353535;
+  --on-surface:#e5e2e1;
+  --on-surface-var:#c6c6c5;
+  --outline:#8f8f8e;
+  --outline-var:#454544;
+  --inverse-surface:#e5e2e1;
+  --inverse-on-surface:#303030;
+
+  /* state layers, driven off on-surface so they stay neutral */
+  --sl-hover:rgba(229,226,225,.09);
+  --sl-strong:rgba(229,226,225,.14);
+  --sl-primary:rgba(201,199,198,.11);
+  --sl-error:var(--sl-error);
+
+  /* — shape — */
+  --r-xs:4px; --r-s:8px; --r-m:12px; --r-l:16px; --r-xl:28px; --r-full:999px;
+
+  /* — motion: emphasised + a spring for shape morphs — */
+  --ease:cubic-bezier(.2,0,0,1);
+  --spring:cubic-bezier(.34,1.4,.64,1);
+
+  --ui:'Roboto Flex','Roboto',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--s-lowest);color:var(--on-surface);
+  font-family:var(--ui);font-size:14px;line-height:1.43;letter-spacing:.0071em;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;font-family:var(--ui)}
+:focus-visible{outline:3px solid var(--tertiary);outline-offset:2px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--s-highest);border-radius:var(--r-full);border:3px solid transparent;background-clip:content-box}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+.shell{
+  display:grid;grid-template-rows:auto 1fr auto;
+  height:100dvh;min-height:0;min-width:0;overflow-x:clip;
+}
+
+/* — top app bar — */
+.topbar{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+  padding:12px 16px;background:var(--s-lowest);min-height:64px;min-width:0;
+}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto;min-width:0;overflow:hidden}
+.brand .logo{
+  width:40px;height:40px;flex:none;border-radius:var(--r-m);
+  background:var(--primary-container);color:var(--on-primary-container);
+  display:grid;place-items:center;
+  transition:border-radius .4s var(--spring);
+}
+.brand:hover .logo{border-radius:var(--r-full)}
+.brand b{
+  font-size:22px;line-height:1.27;font-weight:600;letter-spacing:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+}
+.saved{
+  font-size:12px;letter-spacing:.033em;color:var(--on-surface-var);
+  text-align:right;padding:0 4px;
+}
+
+/* — buttons: pill by default, squaring off on press — */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:40px;padding:0 24px;border-radius:var(--r-full);
+  font-size:14px;font-weight:600;letter-spacing:.0071em;white-space:nowrap;
+  background:var(--s-high);color:var(--on-surface);
+  transition:background .15s var(--ease), border-radius .35s var(--spring),
+             box-shadow .15s var(--ease), transform .15s var(--spring);
+}
+.btn:hover{background:var(--s-highest)}
+.btn:active{border-radius:var(--r-m);transform:scale(.97)}
+.btn .ic{width:18px;height:18px;margin-left:-6px}
+
+.btn.filled{background:var(--primary);color:var(--on-primary)}
+.btn.filled:hover{background:#d7d5d4;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.btn.tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
+.btn.tonal:hover{background:#4e5155}
+.btn.text{background:none;color:var(--primary);padding:0 12px}
+.btn.text:hover{background:var(--sl-primary)}
+.btn.outlined{background:none;border:1px solid var(--outline);color:var(--primary)}
+.btn.outlined:hover{background:var(--sl-primary)}
+.btn.danger{background:var(--error-container);color:var(--on-error-container)}
+.btn.danger:hover{background:#a32b22}
+.btn.sm{height:32px;padding:0 16px;font-size:13px}
+
+.ic{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* — extended FAB — */
+.fab{
+  display:inline-flex;align-items:center;gap:12px;
+  height:56px;padding:0 20px;border-radius:var(--r-l);
+  background:var(--primary-container);color:var(--on-primary-container);
+  font-size:15px;font-weight:600;
+  box-shadow:0 3px 6px rgba(0,0,0,.35);
+  transition:border-radius .4s var(--spring), transform .2s var(--spring), background .15s var(--ease);
+}
+.fab:hover{background:#575553}
+.fab:active{border-radius:var(--r-xl);transform:scale(.96)}
+.fab .ic{width:24px;height:24px}
+
+/* ============================================================
+   WORKSPACE — rounded panes floating on the background
+   ============================================================ */
+.workspace{
+  display:grid;grid-template-columns:300px minmax(0,1fr) minmax(360px,.85fr);
+  gap:12px;padding:0 12px 12px;min-height:0;min-width:0;overflow:hidden;
+}
+.rail,.form-pane,.preview-pane{border-radius:var(--r-xl);min-height:0;min-width:0;overflow-y:auto}
+
+/* ============================================================
+   DRINKS RAIL
+   ============================================================ */
+.rail{
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--s-container);
+}
+.rail-head{
+  display:flex;align-items:center;gap:8px;padding:20px 16px 12px;min-width:0;
+}
+.rail-head h2{
+  margin:0 auto 0 0;font-size:22px;font-weight:600;letter-spacing:0;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.az{flex:none}
+/* filter chip */
+.az{
+  display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;
+  border:1px solid var(--outline);border-radius:var(--r-s);
+  font-size:13px;font-weight:600;color:var(--on-surface-var);
+  transition:background .15s var(--ease), color .15s var(--ease),
+             border-color .15s var(--ease), border-radius .35s var(--spring);
+}
+.az:hover{background:var(--sl-hover);color:var(--on-surface)}
+.az.on{
+  background:var(--secondary-container);color:var(--on-secondary-container);
+  border-color:transparent;padding-left:10px;
+}
+.az .ic{width:16px;height:16px;display:none}
+.az.on .ic{display:block}
+
+.rail-list{overflow-y:auto;flex:1;padding:0 12px 8px}
+.rail-group{
+  margin:16px 0 6px;padding:0 12px;
+  font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--tertiary);
+}
+.rail-group:first-child{margin-top:4px}
+.rail-item{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  min-height:56px;padding:8px 16px;margin-bottom:2px;
+  border-radius:var(--r-full);color:var(--on-surface-var);
+  transition:background .15s var(--ease), color .15s var(--ease), border-radius .35s var(--spring);
+}
+.rail-item:hover{background:var(--sl-hover);color:var(--on-surface)}
+.rail-item.on{background:var(--secondary-container);color:var(--on-secondary-container)}
+.rail-item.on:active{border-radius:var(--r-l)}
+.rail-num{font-family:var(--mono);font-size:11px;opacity:.7;width:18px;flex:none}
+.rail-thumb{
+  width:40px;height:40px;border-radius:var(--r-m);object-fit:cover;flex:none;
+  background:var(--s-highest);
+}
+.rail-name{
+  flex:1;min-width:0;font-size:15px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rail-empty{padding:24px 16px;color:var(--on-surface-var);line-height:1.6}
+.rail-foot{
+  padding:12px 16px;border-top:1px solid var(--outline-var);
+  font-size:12px;letter-spacing:.033em;color:var(--on-surface-var);
+  display:flex;align-items:center;gap:12px;min-width:0;
+}
+.rail-foot > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rail-foot .fab{margin-left:auto;flex:none}
+
+/* ============================================================
+   FORM
+   ============================================================ */
+.form-pane{background:var(--surface);padding:20px 20px 40px}
+.form-pane.empty{display:grid;place-items:center;text-align:center;color:var(--on-surface-var)}
+
+/* each section is a card */
+.sect{
+  --field-bg:var(--s-low);
+  background:var(--s-low);border-radius:var(--r-l);
+  padding:20px;margin-bottom:12px;
+}
+.sect > h3{
+  margin:0 0 18px;font-size:16px;font-weight:600;letter-spacing:.009em;
+  color:var(--primary);
+}
+.sect.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sect.actions > h3{width:100%;margin-bottom:12px}
+
+/* — outlined text field with notched label — */
+label.field, .field{display:block;position:relative;margin-bottom:22px}
+.field > span{
+  position:absolute;top:-7px;left:12px;z-index:1;padding:0 5px;
+  background:var(--field-bg);
+  font-size:12px;font-weight:500;letter-spacing:.033em;color:var(--on-surface-var);
+  pointer-events:none;
+}
+.inp{
+  width:100%;min-height:56px;padding:16px;
+  background:transparent;color:var(--on-surface);
+  border:1px solid var(--outline);border-radius:var(--r-m);
+  font-size:16px;letter-spacing:.031em;
+  transition:border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.inp:hover{border-color:var(--on-surface)}
+.inp:focus{outline:none;border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.inp::placeholder{color:var(--on-surface-var);opacity:.6}
+textarea.inp{resize:vertical;line-height:1.5;min-height:80px}
+input[type=file].inp{padding:14px;font-size:14px;cursor:pointer}
+input[type=file].inp::file-selector-button{
+  height:32px;padding:0 16px;margin-right:12px;border:none;
+  border-radius:var(--r-full);background:var(--secondary-container);
+  color:var(--on-secondary-container);font-weight:600;font-size:13px;cursor:pointer;
+}
+
+/* — repeatable rows — */
+.repeat-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px}
+.repeat-row .grip{
+  font-family:var(--mono);font-size:12px;color:var(--on-surface-var);
+  padding-top:19px;width:16px;flex:none;text-align:right;
+}
+.repeat-row .inp{min-height:52px;padding:14px}
+.amt{width:104px;flex:none;font-family:var(--mono);font-size:14px}
+.move{display:flex;flex-direction:column;flex:none;gap:2px;padding-top:2px}
+.mv{
+  width:32px;height:24px;border-radius:var(--r-s);
+  display:grid;place-items:center;color:var(--on-surface-var);
+  transition:background .15s var(--ease), color .15s var(--ease);
+}
+.mv:hover:not(:disabled){background:var(--sl-strong);color:var(--on-surface)}
+.mv:disabled{opacity:.3;cursor:default}
+.mv .ic{width:16px;height:16px}
+.x{
+  flex:none;width:40px;height:52px;border-radius:var(--r-m);
+  display:grid;place-items:center;color:var(--on-surface-var);
+  transition:background .15s var(--ease), color .15s var(--ease);
+}
+.x:hover{background:var(--sl-error);color:var(--error)}
+
+.add{
+  display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;
+  border-radius:var(--r-full);color:var(--primary);
+  font-size:14px;font-weight:600;
+  transition:background .15s var(--ease), border-radius .35s var(--spring);
+}
+.add:hover{background:var(--sl-primary)}
+.add:active{border-radius:var(--r-s)}
+.add .ic{width:18px;height:18px}
+
+.hint{
+  font-size:12px;letter-spacing:.033em;color:var(--on-surface-var);
+  line-height:1.5;margin:10px 0 0;
+}
+
+/* — non-alcoholic toggle — */
+.natoggle{
+  display:flex;align-items:center;gap:10px;width:100%;margin-bottom:22px;
+  min-height:52px;padding:0 20px 0 16px;
+  border:1px solid var(--outline);border-radius:var(--r-m);
+  background:none;color:var(--on-surface-var);text-align:left;
+  font-size:15px;font-weight:600;
+  transition:background .15s var(--ease), color .15s var(--ease),
+             border-color .15s var(--ease), border-radius .35s var(--spring);
+}
+.natoggle:hover{background:var(--sl-hover);color:var(--on-surface)}
+.natoggle.on{
+  background:var(--tertiary-container);color:var(--on-tertiary-container);
+  border-color:transparent;
+}
+.natoggle .ic{width:20px;height:20px;flex:none}
+
+/* — glassware picker — */
+.glass-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-bottom:12px}
+.glass-pick{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:14px 6px 10px;border-radius:var(--r-l);
+  border:1px solid var(--outline-var);background:none;color:var(--on-surface-var);
+  transition:background .15s var(--ease), color .15s var(--ease),
+             border-color .15s var(--ease), border-radius .35s var(--spring);
+}
+.glass-pick:hover{background:var(--sl-hover);color:var(--on-surface)}
+.glass-pick.on{
+  background:var(--secondary-container);color:var(--on-secondary-container);
+  border-color:transparent;
+}
+.glass-pick:active{border-radius:var(--r-xl)}
+.glass-pick svg{
+  height:34px;width:26px;fill:none;stroke:currentColor;
+  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+}
+.glass-pick em{font-style:normal;font-size:11px;font-weight:500;text-align:center;line-height:1.2}
+
+/* — allergen filter chips — */
+.allergen-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.al-toggle{
+  display:inline-flex;align-items:center;gap:7px;
+  height:36px;padding:0 16px;border-radius:var(--r-s);
+  border:1px solid var(--outline);background:none;color:var(--on-surface-var);
+  font-size:14px;font-weight:600;
+  transition:background .15s var(--ease), color .15s var(--ease),
+             border-color .15s var(--ease), border-radius .35s var(--spring);
+}
+.al-toggle:hover{background:var(--sl-hover);color:var(--on-surface)}
+.al-toggle:active{border-radius:var(--r-l)}
+.al-toggle .dot{width:12px;height:12px;border-radius:var(--r-full);flex:none}
+.al-toggle .ic{width:16px;height:16px;display:none}
+.al-toggle.on{border-color:transparent;color:#fff}
+.al-toggle.on .dot{display:none}
+.al-toggle.on .ic{display:block}
+
+/* — inline add row — */
+.al-add{display:flex;gap:8px;align-items:center}
+.al-add .inp{flex:1;min-width:0;min-height:48px;padding:12px 16px;font-size:14px}
+.al-add input[type=color]{
+  width:48px;height:48px;flex:none;padding:3px;cursor:pointer;
+  background:var(--s-high);border:none;border-radius:var(--r-m);
+}
+.al-manage{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.al-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  height:32px;padding:0 6px 0 12px;border-radius:var(--r-s);
+  background:var(--s-high);color:var(--on-surface-var);font-size:13px;font-weight:500;
+}
+.al-chip .dot{width:10px;height:10px;border-radius:var(--r-full);flex:none}
+.al-chip button{
+  width:22px;height:22px;border-radius:var(--r-full);display:grid;place-items:center;
+  color:var(--on-surface-var);transition:background .15s var(--ease), color .15s var(--ease);
+}
+.al-chip button:hover{background:var(--sl-error);color:var(--error)}
+.al-chip .ic{width:14px;height:14px}
+
+/* ============================================================
+   PREVIEW
+   ============================================================ */
+.preview-pane{background:var(--s-low);padding:20px}
+.preview-head{
+  display:flex;align-items:center;gap:12px;margin-bottom:18px;
+}
+.preview-head span{font-size:16px;font-weight:600;color:var(--on-surface)}
+.preview-head .btn{margin-left:auto}
+.scaler{transform-origin:top left}
+.sheet-wrap{
+  background:#fff;border-radius:var(--r-s);overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);margin-bottom:20px;
+}
+.sheet-label{
+  font-size:12px;letter-spacing:.033em;color:var(--on-surface-var);margin:0 0 8px;
+}
+.card-frame{border-radius:var(--r-m);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+
+/* ============================================================
+   NAVIGATION BAR — narrow screens only
+   ============================================================ */
+.tabs{
+  display:none;background:var(--s-container);
+  padding:12px 8px 16px;gap:4px;min-width:0;
+}
+.tabs button{
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;
+  color:var(--on-surface-var);font-size:12px;font-weight:600;letter-spacing:.033em;
+  background:none;padding:0;
+}
+.tabs .pill{
+  width:64px;height:32px;border-radius:var(--r-l);
+  display:grid;place-items:center;
+  transition:background .25s var(--ease), width .3s var(--spring);
+}
+.tabs button:hover .pill{background:var(--sl-hover)}
+.tabs button.on{color:var(--on-secondary-container)}
+.tabs button.on .pill{background:var(--secondary-container)}
+.tabs .ic{width:24px;height:24px}
+
+/* ============================================================
+   SNACKBAR
+   ============================================================ */
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:var(--inverse-surface);color:var(--inverse-on-surface);
+  padding:14px 18px;border-radius:var(--r-xs);
+  font-size:14px;font-weight:500;z-index:99;max-width:min(560px,calc(100vw - 32px));
+  box-shadow:0 6px 20px rgba(0,0,0,.5);
+  animation:snack .35s var(--spring);
+}
+@keyframes snack{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+
+#printRoot{display:none}
+
+/* ============================================================
+   BREAKPOINTS
+   ============================================================ */
+@media(max-width:1179px){
+  .tabs{display:flex}
+  .workspace{grid-template-columns:minmax(0,1fr);padding:0 8px 8px}
+  .rail,.form-pane,.preview-pane{display:none}
+  .form-pane.empty{display:none}
+  .rail.on{display:flex}
+  .form-pane.on{display:block}
+  .form-pane.on.empty{display:grid}
+  .preview-pane.on{display:block}
+}
+@media(max-width:700px){
+  .topbar{padding:8px 10px;gap:2px;min-height:56px}
+  .brand{gap:8px}
+  .brand b{font-size:18px}
+  .brand .logo{width:36px;height:36px}
+  .saved{order:9;width:100%;text-align:center;padding-bottom:2px}
+  .btn{padding:0 14px}
+  .lbl{display:none}
+  /* secondary actions collapse to icon buttons, as an M3 top app bar does */
+  .btn.compact{width:40px;padding:0;flex:none;border-radius:var(--r-full)}
+  .btn.compact .btxt{display:none}
+  .btn.compact .ic{margin-left:0;width:20px;height:20px}
+  .form-pane{padding:16px 14px 32px}
+  .sect{padding:16px}
+  .preview-pane{padding:16px 14px}
+  .amt{width:88px}
+  .workspace{padding:0 6px 6px}
+  .rail,.form-pane,.preview-pane{border-radius:var(--r-l)}
+}
+@media(max-width:560px){
+  .brand b{display:none}
+  .rail-head{padding:16px 12px 10px}
+  .rail-item{padding:8px 12px;gap:10px}
+  .tabs button{font-size:11px}
+  .tabs .pill{width:56px}
+}
+@media(max-width:420px){
+  .glass-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}
+  .repeat-row .grip{display:none}
+  .fab{padding:0 16px;font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+</style>
+<style id="cardStyles"></style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16l-8 8v6"/><path d="M8 19h8"/></svg></span>
+      <b>Build Cards</b>
+    </div>
+    <span class="saved" id="savedFlag"></span>
+    <button class="btn text compact" id="btnImport" title="Import a .zip bundle or .json deck"><svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg><span class="btxt">Import<span class="lbl">&nbsp;Recipes</span></span></button>
+    <button class="btn text compact" id="btnExportJson" title="Export a .zip bundle with recipes and photos"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 16v4h16v-4"/></svg><span class="btxt">Export<span class="lbl">&nbsp;Recipes</span></span></button>
+    <button class="btn filled" id="btnPdf"><svg class="ic" viewBox="0 0 24 24"><path d="M7 9V4h10v5"/><path d="M5 9h14v7H5z"/><path d="M7 14h10v6H7z"/></svg>Export PDF</button>
+    <input type="file" id="fileJson" accept=".zip,.json,application/zip,application/json" hidden>
+  </header>
+
+  <div class="workspace">
+    <nav class="rail on" id="rail">
+      <div class="rail-head">
+        <h2>Drinks</h2>
+        <button class="az" id="btnSort" title="Keep drinks in alphabetical order">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>A–Z
+        </button>
+      </div>
+      <div class="rail-list" id="railList"></div>
+      <div class="rail-foot">
+        <span id="railFoot"></span>
+        <button class="fab" id="btnAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
+      </div>
+    </nav>
+
+    <main class="form-pane" id="formPane"></main>
+
+    <aside class="preview-pane" id="previewPane">
+      <div class="preview-head">
+        <span id="previewTitle">Drink preview</span>
+        <button class="btn tonal sm" id="btnPreviewMode">Preview whole PDF</button>
+      </div>
+      <div id="previewBody"></div>
+    </aside>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="rail" class="on">
+      <span class="pill"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16l-8 8v6"/><path d="M8 19h8"/></svg></span>Drinks
+    </button>
+    <button data-tab="form">
+      <span class="pill"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2 2 0 00-3-3L5 17z"/></svg></span>Edit
+    </button>
+    <button data-tab="preview">
+      <span class="pill"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span>Preview
+    </button>
+  </nav>
+</div>
+
+<div id="printRoot"></div>
+
+<script>
+/* ============================================================
+   CARD STYLESHEET
+   Shared by the on-screen preview, the print sheet, and the
+   standalone export window. Sized in inches/points so it lands
+   the same on paper every time.
+   ============================================================ */
+const CARD_CSS = `
+@page{ size:letter landscape; margin:0.35in; }
+
+/* Typography lives on the wrapper, not on .page — the single-card
+   preview renders a bare .bc with no page around it. */
+.bc{
+  font-family:'Source Sans 3',system-ui,sans-serif;
+  color:#12181c;
+}
+
+.bc .page{
+  width:10.3in; height:7.8in;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  grid-template-rows:repeat(3,1fr);
+  gap:0.16in;
+  background:#fff;
+}
+.bc .page.pad{ padding:0.35in; width:11in; height:8.5in; }
+
+.bc .card{
+  --accent:#c8443c;
+  display:grid;
+  grid-template-columns:1.5in minmax(0,1fr);
+  border:0.5pt solid #b9c4ca;
+  overflow:hidden;
+  background:#fff;
+}
+
+.bc .shot{background:#e6ebee;overflow:hidden;position:relative}
+.bc .shot img{width:100%;height:100%;object-fit:cover;display:block}
+.bc .shot .none{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Archivo',sans-serif;font-size:6pt;letter-spacing:.18em;
+  text-transform:uppercase;color:#9fadb5;
+}
+
+.bc .body{
+  display:flex;flex-direction:column;
+  padding:0.11in 0.13in 0.09in;min-width:0;
+}
+
+.bc .head{
+  display:flex;align-items:baseline;gap:0.05in;
+  border-bottom:1.25pt solid var(--accent);padding-bottom:2.5pt;margin-bottom:4pt;
+}
+.bc .head h4{
+  margin:0;flex:1;min-width:0;
+  font-family:'Archivo',sans-serif;font-weight:800;
+  font-size:11.5pt;line-height:1.05;letter-spacing:-.015em;
+  text-transform:uppercase;
+  overflow-wrap:break-word;
+}
+/* Solid so it reads across the bar, not a subtle outline */
+.bc .head .na{
+  font-family:'Archivo',sans-serif;font-size:6.5pt;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;
+  background:#2f7d55;color:#fff;
+  padding:1.8pt 4.5pt;border-radius:99pt;line-height:1;
+  white-space:nowrap;flex:none;align-self:center;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.bc .head .glassname{
+  font-family:'Archivo',sans-serif;font-size:5.5pt;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:#5d6d77;
+  white-space:nowrap;flex:none;align-self:center;
+}
+.bc .head .glass{
+  flex:none;align-self:center;line-height:0;
+}
+.bc .head .glass svg{
+  height:0.235in;width:auto;display:block;
+  fill:none;stroke:var(--accent);stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+
+.bc .cols{
+  flex:1;display:grid;grid-template-columns:1.42in minmax(0,1fr);
+  gap:0.13in;min-height:0;
+}
+.bc .col > h5, .bc .garnish h5, .bc .foot h5{
+  margin:0 0 3pt;font-family:'Archivo',sans-serif;
+  font-size:5.5pt;font-weight:700;letter-spacing:.2em;
+  text-transform:uppercase;color:#8c9aa3;
+}
+
+/* SIGNATURE: the measure gutter. Every amount right-aligned in a
+   fixed monospace column so the whole build reads as one number stack. */
+.bc .spec{display:grid;grid-template-columns:auto 1fr;column-gap:5pt;row-gap:1.5pt}
+.bc .spec dt{
+  font-family:'IBM Plex Mono',monospace;font-size:7.5pt;font-weight:600;
+  text-align:right;white-space:nowrap;line-height:1.3;
+  font-variant-numeric:tabular-nums;
+  border-right:0.5pt solid #d3dbe0;padding-right:5pt;
+}
+.bc .spec dd{margin:0;font-size:8pt;line-height:1.3}
+
+.bc .steps{margin:0;padding:0;list-style:none;counter-reset:s}
+.bc .steps li{
+  counter-increment:s;position:relative;padding-left:11pt;
+  font-size:7.5pt;line-height:1.32;margin-bottom:2.5pt;
+}
+.bc .steps li::before{
+  content:counter(s);position:absolute;left:0;top:0.3pt;
+  font-family:'IBM Plex Mono',monospace;font-size:6.5pt;font-weight:600;color:var(--accent);
+}
+.bc .steps b{font-weight:600}
+
+/* garnish rides under the method steps, where the bartender lands last */
+.bc .garnish{margin-top:4pt;padding-top:3.5pt;border-top:0.5pt solid #d3dbe0}
+.bc .garnish p{margin:0;font-size:7.5pt;line-height:1.25;font-weight:600}
+
+.bc .foot{
+  margin-top:4pt;border-top:0.5pt solid #12181c;padding-top:3.5pt;
+  display:flex;align-items:center;gap:5pt;
+}
+.bc .foot > h5{margin:0;flex:none}
+.bc .foot .none{font-size:7pt;color:#8c9aa3}
+
+.bc .pills{display:flex;flex-wrap:wrap;gap:2.5pt}
+.bc .pill{
+  font-family:'Archivo',sans-serif;font-size:5.5pt;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:#fff;
+  padding:1.8pt 4.5pt;border-radius:99pt;line-height:1;
+  /* browsers drop background colour when printing unless told otherwise */
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+`;
+
+/* Hues are spread across the wheel so no two pills read the same
+   at pill size or through a photocopier. */
+const BASE_ALLERGENS = [
+  ['Dairy','#1f6fb2'], ['Egg','#d4a017'], ['Gluten','#b26a12'],
+  ['Nuts','#6b4226'], ['Tree Nuts','#3f8f5c'], ['Peanuts','#a8442a'],
+  ['Fish','#17868f'], ['Shellfish','#c72f52'], ['Sesame','#7b4fc4'],
+  ['Soy','#b3358a'], ['Not-Vegan','#58666f'],
+];
+let customAllergens = [];
+const allAllergens = () => BASE_ALLERGENS.concat(customAllergens);
+const alColor = n => (allAllergens().find(a => a[0].toLowerCase() === String(n).toLowerCase()) || [,'#58666f'])[1];
+
+/* Glassware — drawn on a 24×32 grid, stroked in currentColor. */
+const BASE_GLASSWARE = [
+  ['Rocks',     '<path d="M6 13h12l-.9 14.2a1.4 1.4 0 01-1.4 1.3H8.3a1.4 1.4 0 01-1.4-1.3z"/>'],
+  ['Collins',   '<path d="M7.6 4h8.8l-1 23.2a1.3 1.3 0 01-1.3 1.2h-4.2a1.3 1.3 0 01-1.3-1.2z"/>'],
+  ['Coupe',     '<path d="M4.2 8.5h15.6c0 4.7-3.5 7.8-7.8 7.8S4.2 13.2 4.2 8.5z"/><path d="M12 16.3v10.4"/><path d="M7.4 28.4h9.2"/>'],
+  ['Martini',   '<path d="M4.4 7.6h15.2L12 16.4z"/><path d="M12 16.4v10.3"/><path d="M7.4 28.4h9.2"/>'],
+  ['Nick & Nora','<path d="M6.6 8h10.8c0 4-2.4 6.6-5.4 6.6S6.6 12 6.6 8z"/><path d="M12 14.6v11.8"/><path d="M7.8 28.2h8.4"/>'],
+  ['Wine',      '<path d="M6.6 4h10.8c0 8.4-2.3 12.2-5.4 12.2S6.6 12.4 6.6 4z"/><path d="M12 16.2v10.2"/><path d="M7.4 28.4h9.2"/>'],
+  ['Flute',     '<path d="M9.2 4h5.6l-.6 12.2c-.1 2-1 3-2.2 3s-2.1-1-2.2-3z"/><path d="M12 19.2v7.2"/><path d="M8.4 28.4h7.2"/>'],
+];
+/* Anything you name yourself gets this neutral tumbler. */
+const GENERIC_GLASS = '<path d="M7 6h10l-1 21.1a1.4 1.4 0 01-1.4 1.3H9.4A1.4 1.4 0 018 27.1z"/>';
+
+let customGlassware = [];
+const allGlassware = () => BASE_GLASSWARE.concat(customGlassware.map(n => [n, GENERIC_GLASS]));
+
+const glassIcon = name => {
+  if(!name) return '';
+  const g = allGlassware().find(x => x[0].toLowerCase() === String(name).toLowerCase());
+  const path = g ? g[1] : GENERIC_GLASS;   // unknown names still draw something
+  return `<svg viewBox="0 0 24 32" role="img" aria-label="${esc(name)} glass"><title>${esc(name)}</title>${path}</svg>`;
+};
+
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const uid = () => Math.random().toString(36).slice(2, 10);
+const blank = () => ({
+  id: uid(), name: 'New Cocktail', glass: 'Rocks', na: false,
+  photo: '', ingredients: [{ amount: '', name: '' }], steps: [''],
+  garnish: '', allergens: []
+});
+
+let cards = [];
+let selectedId = null;
+let sortAZ = false;
+
+/* The one ordering everything reads from — rail, page preview and
+   export all go through this so what you see is what prints. */
+const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+function ordered(){
+  const rank = c => (c.na ? 1 : 0);          // alcoholic first, always
+  // sort() is stable, so manual order survives inside each group
+  return cards.slice().sort((a, b) =>
+    rank(a) - rank(b) ||
+    (sortAZ ? collator.compare(a.name || '', b.name || '') : 0));
+}
+let previewMode = 'card';
+let saveTimer = null;
+
+const SEED = [];   // start empty — the deck is yours to fill
+
+
+/* ============================================================
+   PERSISTENCE — in-app storage plus portable JSON
+   ============================================================ */
+/* ============================================================
+   STORAGE
+   Claude's artifact runtime when it's there; IndexedDB anywhere
+   else (GitHub Pages, a local server, your own hosting). Same
+   deck shape either way, so a deck saved in one still imports
+   into the other.
+   ============================================================ */
+const KEY = 'bc:deck';
+
+const idb = {
+  _p: null,
+  open(){
+    return this._p || (this._p = new Promise((res, rej) => {
+      const r = indexedDB.open('build-cards', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    }));
+  },
+  async get(k){
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const q = db.transaction('kv', 'readonly').objectStore('kv').get(k);
+      q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+    });
+  },
+  async set(k, v){
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const q = db.transaction('kv', 'readwrite').objectStore('kv').put(v, k);
+      q.onsuccess = () => res(); q.onerror = () => rej(q.error);
+    });
+  }
+};
+
+let storageMode =
+  (typeof window.storage !== 'undefined') ? 'claude' :
+  (window.indexedDB ? 'idb' : 'none');
+
+async function readDeck(){
+  if(storageMode === 'claude'){
+    const r = await window.storage.get(KEY, false);
+    return r && r.value ? JSON.parse(r.value) : null;
+  }
+  if(storageMode === 'idb'){
+    const v = await idb.get(KEY);
+    return v ? JSON.parse(v) : null;
+  }
+  return null;
+}
+
+async function writeDeck(){
+  const payload = JSON.stringify({ cards, customAllergens, customGlassware, sortAZ });
+  if(storageMode === 'claude') return window.storage.set(KEY, payload, false);
+  if(storageMode === 'idb')    return idb.set(KEY, payload);
+  throw new Error('no storage available');
+}
+
+async function loadAll(){
+  try{
+    adopt(await readDeck());
+  }catch(e){
+    // Chrome blocks IndexedDB on file:// URLs — fall back to session-only
+    storageMode = 'none';
+    cards = SEED.map(normalise);
+  }
+}
+
+/* Accepts the current {cards, customAllergens} shape or a bare
+   array from an older save. */
+function adopt(data){
+  const incoming = Array.isArray(data) ? data : (data && data.cards);
+  if(Array.isArray(data) || !data){ customAllergens = []; customGlassware = []; }
+  else {
+    customAllergens = Array.isArray(data.customAllergens) ? data.customAllergens.slice() : [];
+    customGlassware = Array.isArray(data.customGlassware) ? data.customGlassware.slice() : [];
+    sortAZ = !!data.sortAZ;
+  }
+  cards = Array.isArray(incoming) ? incoming.map(normalise) : SEED.map(normalise);
+}
+
+function normalise(c){
+  return {
+    id: c.id || uid(),
+    name: c.name || '', glass: c.glass || '', na: !!c.na,
+    photo: c.photo || '',
+    ingredients: Array.isArray(c.ingredients) && c.ingredients.length ? c.ingredients : [{amount:'',name:''}],
+    steps: Array.isArray(c.steps) && c.steps.length ? c.steps : [''],
+    garnish: c.garnish || '',
+    allergens: Array.isArray(c.allergens) ? c.allergens : []
+  };
+}
+
+function queueSave(){
+  if(storageMode === 'none'){ flag('Not saved — export a backup'); return; }
+  flag('Saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveAll, 600);
+}
+
+async function saveAll(){
+  try{
+    await writeDeck();
+    flag('Saved');
+  }catch(e){
+    storageMode = 'none';
+    flag('Not saved — export a backup');
+  }
+}
+
+/* ============================================================
+   ZIP — written by hand so the app stays one file with no CDN.
+   Entries are stored uncompressed: photos are already JPEG, and
+   the JSON is small. Reading also handles deflate, in case the
+   bundle has been through another zip tool.
+   ============================================================ */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for(let i = 0; i < 256; i++){
+    let c = i;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(buf){
+  let c = 0xFFFFFFFF;
+  for(let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function zipWrite(files){
+  const enc = new TextEncoder();
+  const now = new Date();
+  const time = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() / 2)) & 0xFFFF;
+  const date = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+
+  const parts = [], central = [];
+  let offset = 0;
+
+  for(const f of files){
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true);
+    h.setUint16(4, 20, true);
+    h.setUint16(6, 0x0800, true);      // UTF-8 filenames
+    h.setUint16(8, 0, true);           // stored
+    h.setUint16(10, time, true); h.setUint16(12, date, true);
+    h.setUint32(14, crc, true);
+    h.setUint32(18, f.data.length, true);
+    h.setUint32(22, f.data.length, true);
+    h.setUint16(26, name.length, true);
+    h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, f.data);
+    central.push({ name, crc, size: f.data.length, offset, time, date });
+    offset += 30 + name.length + f.data.length;
+  }
+
+  const cdStart = offset;
+  for(const c of central){
+    const h = new DataView(new ArrayBuffer(46));
+    h.setUint32(0, 0x02014b50, true);
+    h.setUint16(4, 20, true); h.setUint16(6, 20, true);
+    h.setUint16(8, 0x0800, true); h.setUint16(10, 0, true);
+    h.setUint16(12, c.time, true); h.setUint16(14, c.date, true);
+    h.setUint32(16, c.crc, true);
+    h.setUint32(20, c.size, true); h.setUint32(24, c.size, true);
+    h.setUint16(28, c.name.length, true);
+    h.setUint32(38, 0, true);
+    h.setUint32(42, c.offset, true);
+    parts.push(new Uint8Array(h.buffer), c.name);
+    offset += 46 + c.name.length;
+  }
+
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true);
+  e.setUint16(8, central.length, true); e.setUint16(10, central.length, true);
+  e.setUint32(12, offset - cdStart, true);
+  e.setUint32(16, cdStart, true);
+  parts.push(new Uint8Array(e.buffer));
+
+  return new Blob(parts, { type: 'application/zip' });
+}
+
+async function zipRead(buffer){
+  const dv = new DataView(buffer), u8 = new Uint8Array(buffer), dec = new TextDecoder();
+  let eo = -1;
+  for(let i = buffer.byteLength - 22; i >= 0; i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eo = i; break; }
+  }
+  if(eo < 0) throw new Error('not a zip');
+
+  const count = dv.getUint16(eo + 10, true);
+  let p = dv.getUint32(eo + 16, true);
+  const out = {};
+
+  for(let i = 0; i < count; i++){
+    if(dv.getUint32(p, true) !== 0x02014b50) throw new Error('bad central directory');
+    const method = dv.getUint16(p + 10, true);
+    const csize  = dv.getUint32(p + 20, true);
+    const nlen   = dv.getUint16(p + 28, true);
+    const elen   = dv.getUint16(p + 30, true);
+    const clen   = dv.getUint16(p + 32, true);
+    const lho    = dv.getUint32(p + 42, true);
+    const name   = dec.decode(u8.subarray(p + 46, p + 46 + nlen));
+
+    const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+    let data = u8.slice(start, start + csize);
+    if(method === 8){
+      data = new Uint8Array(await new Response(
+        new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+      ).arrayBuffer());
+    } else if(method !== 0){
+      throw new Error('unsupported compression in ' + name);
+    }
+    out[name] = data;
+    p += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+
+/* ---- base64 <-> bytes, chunked so big photos don't blow the stack ---- */
+function b64ToBytes(b64){
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToB64(bytes){
+  let s = '';
+  for(let i = 0; i < bytes.length; i += 0x8000){
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(s);
+}
+
+function flag(t){
+  const el = document.getElementById('savedFlag');
+  el.textContent = t;
+  if(t === 'Saved'){ setTimeout(() => { if(el.textContent === 'Saved') el.textContent = ''; }, 1800); }
+}
+
+/* ============================================================
+   RENDER — rail
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderRail(){
+  const list = $('railList');
+  $('btnSort').classList.toggle('on', sortAZ);
+  const deck = ordered();
+
+  let last = null;
+  list.innerHTML = deck.map((c, i) => {
+    const group = c.na ? 'Non-alcoholic' : 'Alcoholic';
+    const header = group !== last ? `<h3 class="rail-group">${group}</h3>` : '';
+    last = group;
+    return header + `
+    <button class="rail-item ${c.id === selectedId ? 'on' : ''}" data-pick="${c.id}">
+      <span class="rail-num">${String(i+1).padStart(2,'0')}</span>
+      ${c.photo ? `<img class="rail-thumb" src="${c.photo}" alt="">` : `<span class="rail-thumb"></span>`}
+      <span class="rail-name">${esc(c.name) || 'Untitled'}</span>
+    </button>`;
+  }).join('') || `<p class="rail-empty">No drinks yet — tap <b>New</b> below to add your first.</p>`;
+
+  const pages = Math.ceil(cards.length / 6);
+  $('railFoot').textContent = cards.length
+    ? `${cards.length} drink${cards.length === 1 ? '' : 's'} · ${pages} page${pages === 1 ? '' : 's'}`
+    : 'Empty deck';
+}
+
+/* ============================================================
+   RENDER — form
+   ============================================================ */
+const I = {
+  up:    '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
+  down:  '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+  trash: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>',
+  plus:  '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>',
+  close: '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  copy:  '<svg class="ic" viewBox="0 0 24 24"><path d="M9 9h11v11H9z"/><path d="M15 5H4v11"/></svg>',
+};
+
+const moveBtns = (kind, i, len) => `
+  <span class="move">
+    <button class="mv" data-move="${kind}" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} title="Move up">${I.up}</button>
+    <button class="mv" data-move="${kind}" data-i="${i}" data-d="1" ${i === len - 1 ? 'disabled' : ''} title="Move down">${I.down}</button>
+  </span>`;
+
+function renderForm(){
+  const pane = $('formPane');
+  const c = cards.find(x => x.id === selectedId);
+  if(!c){
+    pane.classList.add('empty');
+    pane.innerHTML = `<div><p style="margin-bottom:20px">No drink selected.</p><button class="btn filled" data-act="add">${I.plus}Add your first drink</button></div>`;
+    return;
+  }
+  pane.classList.remove('empty');
+  pane.innerHTML = `
+    <div class="sect">
+      <h3>Identity</h3>
+      <label class="field"><span>Cocktail name</span>
+        <input class="inp" data-f="name" value="${esc(c.name)}" placeholder="e.g. Cherry Pie Margarita"></label>
+      <button class="natoggle ${c.na ? 'on' : ''}" data-act="toggleNa">
+        ${c.na ? I.check : I.plus}${c.na ? 'Non-alcoholic' : 'Mark as non-alcoholic'}
+      </button>
+      <div class="field"><span>Glassware</span>
+        <div class="glass-grid">
+          ${allGlassware().map(([n, path]) => `
+            <button class="glass-pick ${c.glass === n ? 'on' : ''}" data-glass="${esc(n)}" title="${esc(n)}">
+              <svg viewBox="0 0 24 32">${path}</svg>
+              <em>${esc(n)}</em>
+            </button>`).join('')}
+        </div>
+        <div class="al-add">
+          <input class="inp" id="glName" placeholder="Add your own — e.g. Tiki Mug" maxlength="22">
+          <button class="btn tonal" data-act="addGlass">Add</button>
+        </div>
+        ${customGlassware.length ? `
+          <div class="al-manage">
+            ${customGlassware.map(n => `
+              <span class="al-chip">${esc(n)}
+                <button data-rm-glass="${esc(n)}" title="Delete this glassware everywhere">${I.close}</button></span>`).join('')}
+          </div>` : ''}
+      </div>
+      <label class="field"><span>Photo</span>
+        <input class="inp" type="file" accept="image/*" data-photo></label>
+      ${c.photo ? `<button class="add" data-act="clearphoto">${I.trash}Remove photo</button>` : ''}
+    </div>
+
+    <div class="sect">
+      <h3>Spec</h3>
+      <div id="ingRows">${c.ingredients.map((g, i) => `
+        <div class="repeat-row">
+          <span class="grip">${i+1}</span>
+          <input class="inp amt" data-ing="${i}" data-k="amount" value="${esc(g.amount)}" placeholder="1.5 oz">
+          <input class="inp" data-ing="${i}" data-k="name" value="${esc(g.name)}" placeholder="Tequila">
+          ${moveBtns('ing', i, c.ingredients.length)}
+          <button class="x" data-del-ing="${i}" title="Remove">${I.trash}</button>
+        </div>`).join('')}</div>
+      <button class="add" data-act="addIng">${I.plus}Add ingredient</button>
+    </div>
+
+    <div class="sect">
+      <h3>Method steps</h3>
+      <div id="stepRows">${c.steps.map((s, i) => `
+        <div class="repeat-row">
+          <span class="grip">${i+1}</span>
+          <textarea class="inp" rows="2" data-step="${i}" placeholder="Shake with ice and double strain.">${esc(s)}</textarea>
+          ${moveBtns('step', i, c.steps.length)}
+          <button class="x" data-del-step="${i}" title="Remove">${I.trash}</button>
+        </div>`).join('')}</div>
+      <button class="add" data-act="addStep">${I.plus}Add step</button>
+      <p class="hint">Wrap a phrase in *asterisks* to bold it on the card.</p>
+    </div>
+
+    <div class="sect">
+      <h3>Garnish</h3>
+      <label class="field">
+        <textarea class="inp" rows="2" data-f="garnish" placeholder="Dehydrated lime wheel">${esc(c.garnish)}</textarea></label>
+    </div>
+
+    <div class="sect">
+      <h3>Allergens</h3>
+      <div class="allergen-grid">
+        ${allAllergens().map(([n, col]) => {
+          const on = c.allergens.includes(n);
+          return `<button class="al-toggle ${on ? 'on' : ''}" data-al="${esc(n)}"
+            style="${on ? `background:${col}` : ''}">${on ? I.check : `<span class="dot" style="background:${col}"></span>`}${esc(n)}</button>`;
+        }).join('')}
+      </div>
+      <div class="al-add">
+        <input class="inp" id="alName" placeholder="Add your own — e.g. Mustard" maxlength="22">
+        <input type="color" id="alColor" value="#7a5cc0" title="Pill colour">
+        <button class="btn tonal" data-act="addAl">Add</button>
+      </div>
+      ${customAllergens.length ? `
+        <div class="al-manage">
+          ${customAllergens.map(([n, col]) => `
+            <span class="al-chip"><span class="dot" style="background:${col}"></span>${esc(n)}
+              <button data-rm-al="${esc(n)}" title="Delete this allergen everywhere">${I.close}</button></span>`).join('')}
+        </div>` : ''}
+    </div>
+
+
+    <div class="sect actions">
+      <h3>Drink</h3>
+      <button class="btn tonal" data-act="dupe">${I.copy}Duplicate</button>
+      ${sortAZ ? '' : `<button class="btn outlined" data-act="up">${I.up}Move up</button>
+      <button class="btn outlined" data-act="down">${I.down}Move down</button>`}
+      <button class="btn danger" data-act="del">${I.trash}Delete</button>
+      ${sortAZ ? '' : `<p class="hint">Moves stay inside the drink's group — non-alcoholic drinks always print after alcoholic ones.</p>`}
+    </div>
+  `;
+}
+
+/* ============================================================
+   RENDER — the card itself
+   ============================================================ */
+const bold = s => esc(s).replace(/\*([^*]+)\*/g, '<b>$1</b>');
+
+function cardHTML(c){
+  if(!c) return `<div class="card"><div class="shot"></div><div class="body"></div></div>`;
+  return `
+  <article class="card">
+    <div class="shot">
+      ${c.photo ? `<img src="${c.photo}" alt="">` : `<span class="none">Photo</span>`}
+    </div>
+    <div class="body">
+      <div class="head">
+        ${c.na ? `<span class="na">N/A</span>` : ''}
+        <h4>${esc(c.name) || 'Untitled'}</h4>
+        ${c.glass ? `<span class="glassname">${esc(c.glass)}</span><span class="glass">${glassIcon(c.glass)}</span>` : ''}
+      </div>
+      <div class="cols">
+        <div class="col">
+          <h5>Build</h5>
+          <dl class="spec">
+            ${c.ingredients.filter(g => g.amount || g.name).map(g =>
+              `<dt>${esc(g.amount)}</dt><dd>${esc(g.name)}</dd>`).join('')}
+          </dl>
+        </div>
+        <div class="col">
+          <h5>Method</h5>
+          <ol class="steps">
+            ${c.steps.filter(s => s.trim()).map(s => `<li>${bold(s)}</li>`).join('')}
+          </ol>
+          ${c.garnish ? `<div class="garnish"><h5>Garnish</h5><p>${esc(c.garnish)}</p></div>` : ''}
+        </div>
+      </div>
+      <div class="foot">
+        <h5>Allergens</h5>
+        ${c.allergens.length
+          ? `<div class="pills">${c.allergens.map(a =>
+              `<span class="pill" style="background:${alColor(a)}">${esc(a)}</span>`).join('')}</div>`
+          : `<span class="none">None declared</span>`}
+      </div>
+    </div>
+  </article>`;
+}
+
+function pagesHTML(padded){
+  const out = [];
+  const deck = ordered();
+  for(let i = 0; i < Math.max(deck.length, 1); i += 6){
+    const slice = deck.slice(i, i + 6);
+    out.push(`<section class="page${padded ? ' pad' : ''}">${slice.map(cardHTML).join('')}</section>`);
+  }
+  return `<div class="bc">${out.join('')}</div>`;
+}
+
+/* ============================================================
+   RENDER — preview
+   ============================================================ */
+function renderPreview(){
+  const host = $('previewBody');
+  const pane = document.querySelector('.preview-pane');
+  const wide = Math.max(220, pane.clientWidth - 36);
+
+  if(previewMode === 'card'){
+    $('previewTitle').textContent = 'Drink preview';
+    $('btnPreviewMode').textContent = 'Preview whole PDF';
+    const c = cards.find(x => x.id === selectedId);
+    const scale = Math.min(1.9, Math.max(0.42, wide / (5.07 * 96)));
+    host.innerHTML = `
+      <div class="scaler" style="transform:scale(${scale});width:5.07in;height:2.49in">
+        <div class="bc card-frame" style="width:5.07in;height:2.49in;background:#fff">${cardHTML(c)}</div>
+      </div>
+      <div style="height:${2.49 * 96 * scale + 20}px"></div>`;
+  }else{
+    $('previewTitle').textContent = 'Whole PDF';
+    $('btnPreviewMode').textContent = 'Preview one drink';
+    const scale = Math.min(1, wide / (11 * 96));
+    const n = Math.max(1, Math.ceil(cards.length / 6));
+    host.innerHTML = `
+      <div class="scaler" style="transform:scale(${scale});width:11in">
+        ${Array.from({length:n}, (_, p) => `
+          <p class="sheet-label">Page ${p+1} of ${n}</p>
+          <div class="sheet-wrap bc">
+            <section class="page pad">${ordered().slice(p*6, p*6+6).map(cardHTML).join('')}</section>
+          </div>`).join('')}
+      </div>
+      <div style="height:${(8.5 * 96 + 34) * n * scale + 20}px"></div>`;
+  }
+}
+
+function renderAll(){ renderRail(); renderForm(); renderPreview(); }
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function exportPdf(){
+  if(!cards.length){ toast('Add a drink first.'); return; }
+  const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Build Cards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+    <style>html,body{margin:0;padding:0;background:#fff}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .bc .page{page-break-after:always;break-after:page}
+    .bc .page:last-child{page-break-after:auto;break-after:auto}
+    ${CARD_CSS}</style></head>
+    <body>${pagesHTML(false)}</body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){
+    // Popup blocked — fall back to printing this frame.
+    $('printRoot').innerHTML = pagesHTML(false);
+    document.body.classList.add('printing');
+    window.print();
+    setTimeout(() => { $('printRoot').innerHTML = ''; document.body.classList.remove('printing'); }, 500);
+    return;
+  }
+  w.document.write(doc);
+  w.document.close();
+  const go = () => setTimeout(() => { w.focus(); w.print(); }, 450);
+  if(w.document.readyState === 'complete') go(); else w.onload = go;
+  toast('Choose “Save as PDF”, landscape, margins none.');
+}
+
+/* ============================================================
+   BUNDLE — one .zip holding deck.json plus every photo as a
+   real .jpg. Portable, inspectable, and re-importable.
+   ============================================================ */
+function slugify(t){
+  return (t || 'drink').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'drink';
+}
+
+async function exportBundle(){
+  if(!cards.length){ toast('Nothing to export yet.'); return; }
+  try{
+    const enc = new TextEncoder();
+    const files = [];
+    const used = new Set();
+
+    // photos become real files; deck.json points at them by path
+    const deckCards = cards.map(c => {
+      const copy = { ...c };
+      const m = /^data:image\/(\w+);base64,(.*)$/.exec(c.photo || '');
+      if(m){
+        let base = slugify(c.name), name = `photos/${base}.jpg`, n = 2;
+        while(used.has(name)) name = `photos/${base}-${n++}.jpg`;
+        used.add(name);
+        files.push({ name, data: b64ToBytes(m[2]) });
+        copy.photo = name;
+      } else {
+        copy.photo = '';
+      }
+      return copy;
+    });
+
+    const deck = { version: 4, sortAZ, customAllergens, customGlassware, cards: deckCards };
+    files.unshift({ name: 'deck.json', data: enc.encode(JSON.stringify(deck, null, 2)) });
+    files.push({ name: 'README.txt', data: enc.encode(
+      'Build Cards bundle\n' +
+      '==================\n\n' +
+      `Exported ${new Date().toISOString().slice(0,10)} — ${cards.length} drinks.\n\n` +
+      'deck.json  every recipe, with photo: pointing at a file below\n' +
+      'photos/    one .jpg per drink that has one\n\n' +
+      'Import this whole .zip back into Build Cards to restore the set.\n' +
+      'You can also edit deck.json by hand, or swap photos out, and\n' +
+      're-zip the folder — as long as the paths still match up.\n'
+    )});
+
+    const blob = zipWrite(files);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `build-cards-${stamp}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+
+    const mb = (blob.size / 1048576).toFixed(1);
+    toast(`Exported ${cards.length} drinks and ${files.length - 2} photos (${mb} MB).`);
+  }catch(e){
+    toast('Export failed: ' + e.message);
+  }
+}
+
+/* Takes a .zip bundle or a bare .json deck. */
+async function importFile(file){
+  try{
+    let data;
+    if(/\.zip$/i.test(file.name)){
+      const entries = await zipRead(await file.arrayBuffer());
+      const key = Object.keys(entries).find(k => /(^|\/)deck\.json$/i.test(k));
+      if(!key) throw new Error('no deck.json inside');
+      const root = key.slice(0, key.length - 'deck.json'.length);
+      data = JSON.parse(new TextDecoder().decode(entries[key]));
+
+      // rehydrate each photo path back into a data URL
+      (data.cards || []).forEach(c => {
+        if(!c.photo || c.photo.startsWith('data:')) return;
+        const bytes = entries[root + c.photo] || entries[c.photo];
+        c.photo = bytes ? 'data:image/jpeg;base64,' + bytesToB64(bytes) : '';
+      });
+    } else {
+      data = JSON.parse(await file.text());
+    }
+
+    if(!Array.isArray(data) && !Array.isArray(data.cards)) throw new Error('no recipes found');
+    adopt(data);
+    selectedId = cards.length ? cards[0].id : null;
+    renderAll(); queueSave();
+    const withPhotos = cards.filter(c => c.photo).length;
+    toast(`Loaded ${cards.length} drinks${withPhotos ? `, ${withPhotos} with photos` : ''}.`);
+  }catch(e){
+    toast("Couldn't read that file: " + e.message);
+  }
+}
+
+/* Photos are downscaled on the way in — keeps saved decks small
+   and keeps the PDF from ballooning. */
+function readPhoto(file, done){
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900;
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * s);
+      cv.height = Math.round(img.height * s);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      done(cv.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => toast("Couldn't read that image.");
+    img.src = r.result;
+  };
+  r.readAsDataURL(file);
+}
+
+let toastTimer;
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3400);
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+const cur = () => cards.find(x => x.id === selectedId);
+
+document.addEventListener('click', e => {
+  const pick = e.target.closest('[data-pick]');
+  if(pick){ selectedId = pick.dataset.pick; renderAll(); if(narrow()) setTab('form'); return; }
+
+  const mv = e.target.closest('[data-move]');
+  if(mv && !mv.disabled){
+    const c = cur(); if(!c) return;
+    const list = mv.dataset.move === 'ing' ? c.ingredients : c.steps;
+    const i = +mv.dataset.i, j = i + (+mv.dataset.d);
+    if(j < 0 || j >= list.length) return;
+    list.splice(j, 0, list.splice(i, 1)[0]);
+    renderForm(); renderPreview(); queueSave();
+    // keep the moved row's button under the pointer
+    const again = document.querySelector(`[data-move="${mv.dataset.move}"][data-i="${j}"][data-d="${mv.dataset.d}"]`);
+    if(again) again.focus();
+    return;
+  }
+
+  const rmGl = e.target.closest('[data-rm-glass]');
+  if(rmGl){
+    const n = rmGl.dataset.rmGlass;
+    if(!confirm(`Delete “${n}”? Cards using it will fall back to no glassware.`)) return;
+    customGlassware = customGlassware.filter(g => g !== n);
+    cards.forEach(c => { if(c.glass === n) c.glass = ''; });
+    renderAll(); queueSave(); return;
+  }
+
+  const rmAl = e.target.closest('[data-rm-al]');
+  if(rmAl){
+    const n = rmAl.dataset.rmAl;
+    if(!confirm(`Delete “${n}”? It will be removed from every card that uses it.`)) return;
+    customAllergens = customAllergens.filter(a => a[0] !== n);
+    cards.forEach(c => { c.allergens = c.allergens.filter(a => a !== n); });
+    renderAll(); queueSave(); return;
+  }
+
+  const gl = e.target.closest('[data-glass]');
+  if(gl){
+    const c = cur(); if(!c) return;
+    c.glass = gl.dataset.glass;
+    renderForm(); renderPreview(); queueSave(); return;
+  }
+
+  const al = e.target.closest('[data-al]');
+  if(al){
+    const c = cur(); if(!c) return;
+    const n = al.dataset.al;
+    const i = c.allergens.indexOf(n);
+    if(i > -1) c.allergens.splice(i, 1); else c.allergens.push(n);
+    renderForm(); renderPreview(); queueSave(); return;
+  }
+
+  const dIng = e.target.closest('[data-del-ing]');
+  if(dIng){
+    const c = cur();
+    c.ingredients.splice(+dIng.dataset.delIng, 1);
+    if(!c.ingredients.length) c.ingredients.push({amount:'',name:''});
+    renderForm(); renderPreview(); queueSave(); return;
+  }
+
+  const dStep = e.target.closest('[data-del-step]');
+  if(dStep){
+    const c = cur();
+    c.steps.splice(+dStep.dataset.delStep, 1);
+    if(!c.steps.length) c.steps.push('');
+    renderForm(); renderPreview(); queueSave(); return;
+  }
+
+  const act = e.target.closest('[data-act]');
+  if(!act) return;
+  const c = cur();
+  switch(act.dataset.act){
+    case 'add': {
+      const n = blank(); cards.push(n); selectedId = n.id; renderAll(); queueSave(); break;
+    }
+    case 'addIng': c.ingredients.push({amount:'',name:''}); renderForm(); renderPreview(); queueSave(); break;
+    case 'addStep': c.steps.push(''); renderForm(); renderPreview(); queueSave(); break;
+    case 'addGlass': {
+      const name = $('glName').value.trim();
+      if(!name){ toast('Give the glassware a name first.'); break; }
+      if(allGlassware().some(g => g[0].toLowerCase() === name.toLowerCase())){
+        toast(`“${name}” already exists.`); break;
+      }
+      customGlassware.push(name);
+      c.glass = name;
+      renderForm(); renderPreview(); queueSave(); break;
+    }
+    case 'addAl': {
+      const name = $('alName').value.trim();
+      const col = $('alColor').value;
+      if(!name){ toast('Give the allergen a name first.'); break; }
+      if(allAllergens().some(a => a[0].toLowerCase() === name.toLowerCase())){
+        toast(`“${name}” already exists.`); break;
+      }
+      customAllergens.push([name, col]);
+      c.allergens.push(name);
+      renderForm(); renderPreview(); queueSave(); break;
+    }
+    case 'clearphoto': c.photo = ''; renderAll(); queueSave(); break;
+    case 'dupe': {
+      const copy = JSON.parse(JSON.stringify(c));
+      copy.id = uid(); copy.name = c.name + ' (copy)';
+      cards.splice(cards.indexOf(c) + 1, 0, copy);
+      selectedId = copy.id; renderAll(); queueSave(); break;
+    }
+    case 'toggleNa': c.na = !c.na; renderAll(); queueSave(); break;
+    case 'up': case 'down': {
+      // move within the card's own group, since groups always print in order
+      const d = act.dataset.act === 'up' ? -1 : 1;
+      const group = cards.filter(x => !!x.na === !!c.na);
+      const target = group[group.indexOf(c) + d];
+      if(!target) break;
+      const i = cards.indexOf(c), j = cards.indexOf(target);
+      [cards[i], cards[j]] = [cards[j], cards[i]];
+      renderAll(); queueSave(); break;
+    }
+    case 'del': {
+      if(!confirm(`Delete “${c.name}”? This can't be undone.`)) break;
+      const i = cards.indexOf(c);
+      cards.splice(i, 1);
+      selectedId = cards.length ? cards[Math.min(i, cards.length - 1)].id : null;
+      renderAll(); queueSave(); break;
+    }
+  }
+});
+
+document.addEventListener('input', e => {
+  const c = cur(); if(!c) return;
+  const t = e.target;
+  if(t.dataset.f){ c[t.dataset.f] = t.value; renderPreview(); if(t.dataset.f === 'name') renderRail(); queueSave(); return; }
+  if(t.dataset.ing !== undefined){ c.ingredients[+t.dataset.ing][t.dataset.k] = t.value; renderPreview(); queueSave(); return; }
+  if(t.dataset.step !== undefined){ c.steps[+t.dataset.step] = t.value; renderPreview(); queueSave(); return; }
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  const map = { alName: 'addAl', glName: 'addGlass' };
+  const act = map[e.target.id];
+  if(act){
+    e.preventDefault();
+    const b = document.querySelector(`[data-act="${act}"]`);
+    if(b) b.click();
+  }
+});
+
+document.addEventListener('change', e => {
+  if(e.target.hasAttribute && e.target.hasAttribute('data-photo')){
+    const f = e.target.files[0]; if(!f) return;
+    readPhoto(f, dataUrl => { const c = cur(); c.photo = dataUrl; renderAll(); queueSave(); });
+  }
+});
+
+/* ============================================================
+   PANES — three at once on desktop, one at a time below 1180px
+   ============================================================ */
+const PANES = { rail: 'rail', form: 'formPane', preview: 'previewPane' };
+let activeTab = 'form';
+const narrow = () => window.matchMedia('(max-width:1179px)').matches;
+
+function setTab(name){
+  activeTab = name;
+  Object.entries(PANES).forEach(([k, id]) => $(id).classList.toggle('on', k === name));
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  if(name === 'preview') requestAnimationFrame(renderPreview);
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]');
+  if(b) setTab(b.dataset.tab);
+});
+
+$('btnAdd').onclick = () => { const n = blank(); cards.push(n); selectedId = n.id; renderAll(); queueSave(); if(narrow()) setTab('form'); };
+$('btnSort').onclick = () => {
+  sortAZ = !sortAZ;
+  renderAll(); queueSave();
+  toast(sortAZ ? 'Drinks sorted A–Z. New drinks slot in automatically.' : 'Back to manual order.');
+};
+
+$('btnPdf').onclick = exportPdf;
+$('btnExportJson').onclick = exportBundle;
+$('btnImport').onclick = () => $('fileJson').click();
+$('fileJson').onchange = e => { if(e.target.files[0]) importFile(e.target.files[0]); e.target.value = ''; };
+$('btnPreviewMode').onclick = () => { previewMode = previewMode === 'card' ? 'page' : 'card'; renderPreview(); };
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderPreview, 120);
+});
+
+/* fallback in-frame print styling */
+const printCSS = document.createElement('style');
+printCSS.textContent = `@media print{
+  body.printing .shell{display:none}
+  body.printing #printRoot{display:block}
+  .bc .page{page-break-after:always}
+}`;
+document.head.appendChild(printCSS);
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+document.getElementById('cardStyles').textContent = CARD_CSS;
+(async () => {
+  await loadAll();
+  selectedId = cards.length ? cards[0].id : null;
+  setTab('form');
+  renderAll();
+  if(storageMode === 'none'){
+    flag('Not saved — export a backup');
+    toast("This browser won't let the page save. Export a bundle before you close it.");
+  }
+})();
+</script>
+</body>
+</html>
