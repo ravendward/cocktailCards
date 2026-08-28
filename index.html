@@ -1594,14 +1594,26 @@ document.head.appendChild(printCSS);
    BOOT
    ============================================================ */
 document.getElementById('cardStyles').textContent = CARD_CSS;
+/* Browsers may evict IndexedDB under storage pressure unless the
+   origin is marked persistent. Ask once; it's granted silently on
+   an installed or bookmarked origin and harmless if refused. */
+async function requestDurableStorage(){
+  if(storageMode !== 'idb' || !navigator.storage || !navigator.storage.persist) return;
+  try{
+    if(await navigator.storage.persisted()) return;
+    await navigator.storage.persist();
+  }catch(e){ /* not fatal — normal IndexedDB still works */ }
+}
+
 (async () => {
   await loadAll();
   selectedId = cards.length ? cards[0].id : null;
   setTab('form');
   renderAll();
+  requestDurableStorage();
   if(storageMode === 'none'){
     flag('Not saved — export a backup');
-    toast("This browser won't let the page save. Export a bundle before you close it.");
+    toast("This browser won't let the page save. Serve it over http:// instead of opening the file directly.");
   }
 })();
 </script>
